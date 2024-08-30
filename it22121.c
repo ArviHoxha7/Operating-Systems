@@ -22,8 +22,15 @@ void signal_handler(int sig) {
     printf("\nReceived signal %d. Do you want to terminate the program? (y/n): ", sig);
     scanf(" %c", &response);
     if (response == 'y' || response == 'Y') {
-        sem_close(sem);
-        sem_unlink("/file_sem");
+        if (sem_close(sem) != 0) {
+            perror("Failed to close semaphore");
+            exit(1);
+        }
+        
+        if (sem_unlink("/file_sem") != 0) {
+            perror("Failed to unlink semaphore");
+            exit(1);
+        }
         exit(0);
     }
 }
@@ -107,29 +114,34 @@ void process2() {
 int main() {
     signal(SIGINT, signal_handler);
     signal(SIGTERM, signal_handler);
-
     // Δημιουργία σημαφόρου
     sem = sem_open("/file_sem", O_CREAT, 0644, 0);
     if (sem == SEM_FAILED) {
         perror("Failed to create semaphore");
         exit(1);
     }
-
-    pthread_mutex_init(&sum_mutex, NULL);
-
+    if (pthread_mutex_init(&sum_mutex, NULL) != 0) {
+        perror("Failed to initialize mutex");
+        exit(1);
+    }
     pid_t pid = fork();
-    if (pid == 0) {
-        // Διεργασία 1
+    if (pid < 0) {
+        perror("Failed to fork");
+        exit(1);
+    } else if (pid == 0) {
         process1();
     } else {
-        // Διεργασία 2
         process2();
-        waitpid(pid, NULL, 0); // Περιμένει τη διεργασία 1 να τελειώσει
+        if (waitpid(pid, NULL, 0) < 0) {
+            perror("Failed to wait for child process");
+            exit(1);
+        }
     }
-
     sem_close(sem);
     sem_unlink("/file_sem");
-    pthread_mutex_destroy(&sum_mutex);
-
+    if (pthread_mutex_destroy(&sum_mutex) != 0) {
+        perror("Failed to destroy mutex");
+        exit(1);
+    }
     return 0;
 }
