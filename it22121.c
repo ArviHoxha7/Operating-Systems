@@ -53,7 +53,10 @@ void process1() {
     fclose(file);
     printf("File written successfully by Process 1\n");
 
-    sem_post(sem); // Απελευθερώνει το σημαφόρο για να ξεκινήσει η Process 2
+    if (sem_post(sem) == -1) { // Απελευθερώνει το σημαφόρο για να ξεκινήσει η Process 2
+        perror("sem_post failed");
+        exit(1);
+    }
 }
 
 void* thread_function(void *arg) {
@@ -95,7 +98,10 @@ void process2() {
     pthread_t threads[NUM_THREADS];
     int thread_ids[NUM_THREADS];
 
-    sem_wait(sem); // Περιμένει να τελειώσει η Process 1
+    if (sem_wait(sem) == -1) { // Περιμένει να τελειώσει η Process 1
+        perror("sem_wait failed");
+        exit(1);
+    }
 
     // Δημιουργία των νημάτων
     for (int i = 0; i < NUM_THREADS; i++) {
@@ -115,7 +121,7 @@ int main() {
     signal(SIGINT, signal_handler);
     signal(SIGTERM, signal_handler);
     // Δημιουργία σημαφόρου
-    sem = sem_open("/file_sem", O_CREAT, 0644, 0);
+    sem = sem_open("/file_sem", O_CREAT | O_EXCL, 0644, 0);
     if (sem == SEM_FAILED) {
         perror("Failed to create semaphore");
         exit(1);
@@ -137,8 +143,14 @@ int main() {
             exit(1);
         }
     }
-    sem_close(sem);
-    sem_unlink("/file_sem");
+    if (sem_unlink("/file_sem") != 0) {
+        perror("Failed to unlink semaphore!");
+        exit(1);
+    }
+    if (sem_close(sem) != 0) {
+        perror("Failed to close semaphore");
+        exit(1);
+    }
     if (pthread_mutex_destroy(&sum_mutex) != 0) {
         perror("Failed to destroy mutex");
         exit(1);
