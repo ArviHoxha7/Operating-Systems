@@ -121,7 +121,7 @@ int main() {
     signal(SIGINT, signal_handler);
     signal(SIGTERM, signal_handler);
     // Δημιουργία σημαφόρου
-    sem = sem_open("/file_sem", O_CREAT | O_EXCL, 0644, 0);
+    sem = sem_open("/file_sem", O_CREAT, 0644, 0);
     if (sem == SEM_FAILED) {
         perror("Failed to create semaphore");
         exit(1);
