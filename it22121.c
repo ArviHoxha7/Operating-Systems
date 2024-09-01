@@ -22,16 +22,20 @@ void signal_handler(int sig) {
     printf("\nReceived signal %d. Do you want to terminate the program? (y/n): ", sig);
     scanf(" %c", &response);
     if (response == 'y' || response == 'Y') {
+        // Απελευθέρωση των πόρων
         if (sem_close(sem) != 0) {
             perror("Failed to close semaphore");
             exit(1);
         }
-        
         if (sem_unlink("/file_sem") != 0) {
             perror("Failed to unlink semaphore");
             exit(1);
         }
-        exit(0);
+        if (pthread_mutex_destroy(&sum_mutex) != 0) {
+            perror("Failed to destroy mutex");
+            exit(1);
+        }
+        exit(sig);
     }
 }
 
