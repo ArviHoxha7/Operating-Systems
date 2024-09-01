@@ -136,6 +136,7 @@ int main() {
         exit(1);
     } else if (pid == 0) {
         process1();
+        exit(1);
     } else {
         process2();
         if (waitpid(pid, NULL, 0) < 0) {
@@ -143,12 +144,12 @@ int main() {
             exit(1);
         }
     }
-    if (sem_unlink("/file_sem") != 0) {
-        perror("Failed to unlink semaphore!");
-        exit(1);
-    }
     if (sem_close(sem) != 0) {
         perror("Failed to close semaphore");
+        exit(1);
+    }
+    if (sem_unlink("/file_sem") != 0) {
+        perror("Failed to unlink semaphore!");
         exit(1);
     }
     if (pthread_mutex_destroy(&sum_mutex) != 0) {
